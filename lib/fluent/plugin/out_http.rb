@@ -149,6 +149,8 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
         req['authorization'] = "bearer #{@token}"
       elsif @authentication == :jwt
         req['authorization'] = "jwt #{@token}"
+      elsif @authentication == :elk
+        req['authorization'] = "ELK #{@token}"
       end
       @last_request_time = Time.now.to_f
 

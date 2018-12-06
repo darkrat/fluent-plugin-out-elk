@@ -2,13 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "fluent-plugin-out-http"
-  gem.version       = "1.1.3"
-  gem.authors       = ["Marica Odagaki"]
-  gem.email         = ["ento.entotto@gmail.com"]
-  gem.summary       = %q{A generic Fluentd output plugin to send logs to an HTTP endpoint}
-  gem.description   = gem.summary
-  gem.homepage      = "https://github.com/fluent-plugins-nursery/fluent-plugin-out-http"
-  gem.licenses      = ["Apache-2.0"]
+  gem.version       = "1.0.0"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
