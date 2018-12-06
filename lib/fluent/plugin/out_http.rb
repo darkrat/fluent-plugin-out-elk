@@ -40,7 +40,7 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
   config_param :custom_headers, :hash, :default => nil
 
   # 'none' | 'basic' | 'jwt' | 'bearer'
-  config_param :authentication, :enum, list: [:none, :basic, :jwt, :bearer],  :default => :none
+  config_param :authentication, :enum, list: [:none, :basic, :jwt, :bearer, :elk],  :default => :none
   config_param :username, :string, :default => ''
   config_param :password, :string, :default => '', :secret => true
   config_param :token, :string, :default => ''
