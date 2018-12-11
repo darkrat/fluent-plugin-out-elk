@@ -65,7 +65,7 @@ module Fluent::Plugin
     def create_request(tag, time, record)
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + @index_name})
       req = Net::HTTP::Post.new(uri.to_s)
-      log.info('uri '+ uri.request_uri)
+      log.info('uri '+ uri.to_s)
       set_body(req, tag, time, record)
       return req, uri
     end
