@@ -1,13 +1,15 @@
 require 'net/http'
 require 'uri'
 require 'yajl'
-require 'fluent/output'
-module Fluent
-  class ELKOutput < Fluent::Plugin::Output
+require 'fluent/plugin/output'
+module Fluent::Plugin
+ class ELKOutput < Output
 
     Fluent::Plugin.register_output('elk', self)
 
     DEFAULT_BUFFER_TYPE = "memory"
+    
+    helpers :compat_parameters
 
     config_param :host, :string
 
@@ -84,7 +86,6 @@ module Fluent
         req['authorization'] = "ELK #{@token}"
         @last_request_time = Time.now.to_f
         res = Net::HTTP.start(uri.host, uri.port, **http_opts(uri)) {|http| http.request(req) }
-        end
 
       rescue => e # rescue all StandardErrors
         # server didn't respond
@@ -98,9 +99,9 @@ module Fluent
                             "res=nil"
                           end
             log.warn "failed to #{req.method} #{uri} (#{res_summary})"
-        end #end unless
-      end # end begin
-    end # end send_request
+        end
+      end
+    end 
 
     def handle_record(tag, time, record)
       req, uri = create_request(tag, time, record)
@@ -119,22 +120,11 @@ module Fluent
       true
     end
 
-    def process(tag, es)
-      es.each do |time, record|
-        handle_record(tag, time, record)
-      end
-    end
-
     def write(chunk)
       tag = chunk.metadata.tag
-      chunk.msgpack_each do |time, record|
-        handle_record(tag, time, record)
-      end
+      chunk.msgpack_each {|time, record|
+        handle_record(tag, time, record)}
     end
-
-    def multi_workers_ready?
-      true
-    end
-
   end
+end
 
