@@ -57,6 +57,7 @@ module Fluent::Plugin
 
 
     def set_body(req, tag, time, record)
+      parser = Yajl::Parser.new
       hash = parser.parse(record)
       hash['@timestamp'] = time
       hash['tag'] = tag
