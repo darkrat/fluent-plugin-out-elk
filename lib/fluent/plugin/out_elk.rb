@@ -57,7 +57,10 @@ module Fluent::Plugin
 
 
     def set_body(req, tag, time, record)
-      req.body = Yajl.dump(record)
+      hash = parser.parse(record)
+      hash['@timestamp'] = time
+      hash['tag'] = tag
+      req.body = Yajl.dump(hash)
       req['Content-Type'] = 'application/json'
       req
     end
