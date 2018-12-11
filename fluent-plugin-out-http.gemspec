@@ -1,13 +1,13 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |gem|
-  gem.name          = "fluent-plugin-out-http"
+  gem.name          = "fluent-plugin-out-elk"
   gem.version       = "1.0.0"
   gem.authors       = ["Gorshkov Ilya"]
   gem.email         = ["icevirm@gmail.com"]
-  gem.summary       = %q{A generic Fluentd output plugin to send logs to an HTTP endpoint}
+  gem.summary       = %q{A generic Fluentd output plugin to send logs to an ELK endpoint}
   gem.description   = gem.summary
-  gem.homepage      = "https://github.com/fluent-plugins-nursery/fluent-plugin-out-http"
+  gem.homepage      = "https://github.com/fluent-plugins-nursery/fluent-plugin-out-elk"
   gem.licenses      = ["Apache-2.0"]
 
   gem.files         = `git ls-files`.split($\)
