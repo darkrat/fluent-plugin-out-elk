@@ -30,9 +30,6 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
   # Raise errors that were rescued during HTTP requests?
   config_param :raise_on_error, :bool, :default => true
 
-  # ca file to use for https request
-  config_param :cacert_file, :string, :default => ''
-
   config_param :token, :string, :default => ''
   # Switch non-buffered/buffered plugin
   config_param :buffered, :bool, :default => false
@@ -45,14 +42,6 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
   def configure(conf)
     compat_parameters_convert(conf, :buffer)
     super
-
-    @ssl_verify_mode = if @ssl_no_verify
-                         OpenSSL::SSL::VERIFY_NONE
-                       else
-                         OpenSSL::SSL::VERIFY_PEER
-                       end
-
-    @ca_file = @cacert_file
     @last_request_time = nil
     raise Fluent::ConfigError, "'tag' in chunk_keys is required." if !@chunk_key_tag && @buffered
   end
@@ -65,13 +54,11 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
     super
   end
 
-
   def set_body(req, tag, time, record)
     req.body = Yajl.dump(data)
     req['Content-Type'] = 'application/json'
     req
   end
-
 
   def create_request(tag, time, record)
     hash = {
