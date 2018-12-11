@@ -4,7 +4,7 @@ require 'yajl'
 require 'fluent/plugin/output'
 
 class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
-  Fluent::Plugin.register_output('http', self)
+  Fluent::Plugin.register_output('elk', self)
 
   helpers :compat_parameters
 
@@ -14,17 +14,14 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
     super
   end
 
-  # Endpoint URL ex. http://localhost.local/api/
-  config_param :endpoint_url, :string
+  config_param :host, :string
+
+  config_param :port, :string
+  
+  config_param :index_name, :string
 
   # Set Net::HTTP.verify_mode to `OpenSSL::SSL::VERIFY_NONE`
   config_param :ssl_no_verify, :bool, :default => false
-
-  # HTTP method
-  config_param :http_method, :enum, list: [:get, :put, :post, :delete], :default => :post
-
-  # form | json
-  config_param :serializer, :enum, list: [:json, :form, :text], :default => :form
 
   # Simple rate limiting: ignore any records within `rate_limit_msec`
   # since the last one.
@@ -36,13 +33,6 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
   # ca file to use for https request
   config_param :cacert_file, :string, :default => ''
 
-  # custom headers
-  config_param :custom_headers, :hash, :default => nil
-
-  # 'none' | 'basic' | 'jwt' | 'bearer'
-  config_param :authentication, :enum, list: [:none, :basic, :jwt, :bearer, :elk],  :default => :none
-  config_param :username, :string, :default => ''
-  config_param :password, :string, :default => '', :secret => true
   config_param :token, :string, :default => ''
   # Switch non-buffered/buffered plugin
   config_param :buffered, :bool, :default => false
@@ -75,62 +65,23 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
     super
   end
 
-  def format_url(tag, time, record)
-    @endpoint_url
-  end
 
   def set_body(req, tag, time, record)
-    if @serializer == :json
-      set_json_body(req, record)
-    elsif @serializer == :text
-      set_text_body(req, record)
-    else
-      req.set_form_data(record)
-    end
+    req.body = Yajl.dump(data)
+    req['Content-Type'] = 'application/json'
     req
   end
 
-  def set_header(req, tag, time, record)
-    if @custom_headers
-      @custom_headers.each do |k,v|
-        req[k] = v
-      end
-      req
-    else
-      req
-    end
-  end
-
-  def set_json_body(req, data)
-    req.body = Yajl.dump(data)
-    req['Content-Type'] = 'application/json'
-  end
-
-  def set_text_body(req, data)
-    req.body = data["message"]
-    req['Content-Type'] = 'text/plain'
-  end
 
   def create_request(tag, time, record)
-    url = format_url(tag, time, record)
-    uri = URI.parse(url)
-    req = Net::HTTP.const_get(@http_method.to_s.capitalize).new(uri.request_uri)
+    hash = {
+      a: 'logs',
+      b: @index_name
+    }
+    uri = URI::HTTP.build(host: @host, port: @port, query: hash.to_query)
+    req = Net::HTTP::Post.new(uri.request_uri)
     set_body(req, tag, time, record)
-    set_header(req, tag, time, record)
     return req, uri
-  end
-
-  def http_opts(uri)
-      opts = {
-        :use_ssl => uri.scheme == 'https'
-      }
-      opts[:verify_mode] = @ssl_verify_mode if opts[:use_ssl]
-      opts[:ca_file] = File.join(@ca_file) if File.file?(@ca_file)
-      opts
-  end
-
-  def proxies
-    ENV['HTTPS_PROXY'] || ENV['HTTP_PROXY'] || ENV['http_proxy'] || ENV['https_proxy']
   end
 
   def send_request(req, uri)
@@ -143,30 +94,14 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
     res = nil
 
     begin
-      if @authentication == :basic
-        req.basic_auth(@username, @password)
-      elsif @authentication == :bearer
-        req['authorization'] = "bearer #{@token}"
-      elsif @authentication == :jwt
-        req['authorization'] = "jwt #{@token}"
-      elsif @authentication == :elk
-        req['authorization'] = "ELK #{@token}"
-      end
+      req['authorization'] = "ELK #{@token}"
       @last_request_time = Time.now.to_f
-
-      if proxy = proxies
-        proxy_uri = URI.parse(proxy)
-
-        res = Net::HTTP.start(uri.host, uri.port,
-                              proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password,
-                              **http_opts(uri)) {|http| http.request(req) }
-      else
-        res = Net::HTTP.start(uri.host, uri.port, **http_opts(uri)) {|http| http.request(req) }
+      res = Net::HTTP.start(uri.host, uri.port, **http_opts(uri)) {|http| http.request(req) }
       end
 
     rescue => e # rescue all StandardErrors
       # server didn't respond
-      log.warn "Net::HTTP.#{req.method.capitalize} raises exception: #{e.class}, '#{e.message}'"
+      log.warn "raises exception: #{e.class}, '#{e.message}'"
       raise e if @raise_on_error
     else
        unless res and res.is_a?(Net::HTTPSuccess)
@@ -209,7 +144,7 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
 
   def write(chunk)
     tag = chunk.metadata.tag
-    @endpoint_url = extract_placeholders(@endpoint_url, chunk.metadata)
+    #@endpoint_url = extract_placeholders(@endpoint_url, chunk.metadata)
     chunk.msgpack_each do |time, record|
       handle_record(tag, time, record)
     end
