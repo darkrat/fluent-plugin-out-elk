@@ -64,7 +64,7 @@ module Fluent::Plugin
 
     def create_request(tag, time, record)
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + @index_name})
-      req = Net::HTTP::Post.new(uri.request_uri)
+      req = Net::HTTP::Post.new(uri.to_s)
       log.info('uri '+ uri.request_uri)
       set_body(req, tag, time, record)
       return req, uri
@@ -78,7 +78,7 @@ module Fluent::Plugin
       end
 
       res = nil
-
+      log.info('body: '+ req.body)
       begin
         req['authorization'] = "ELK #{@token}"
         @last_request_time = Time.now.to_f
