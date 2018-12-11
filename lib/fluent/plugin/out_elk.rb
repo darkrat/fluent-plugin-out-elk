@@ -57,12 +57,9 @@ module Fluent::Plugin
     end
 
     def set_body(req, tag, time, record)
-      parser = Yajl::Parser.new
-      hash = parser.parse(Yajl.dump(record))
-      hash['@timestamp'] = DateTime.strptime(time.to_s,'%s').to_s
-      hash['tag'] = tag
-      req.body = Yajl.dump(hash)
-      req['Content-Type'] = 'application/json'
+      record['@timestamp'] = DateTime.strptime(time.to_s,'%s').to_s
+      record['tag'] = tag
+      req.body = Yajl.dump(record)
       req
     end
 
@@ -86,6 +83,7 @@ module Fluent::Plugin
       log.info('body: '+ req.body)
       begin
         req['authorization'] = "ELK #{@token}"
+        req['Content-Type'] = 'application/json'
         @last_request_time = Time.now.to_f
         res = Net::HTTP.start(uri.host, uri.port, :read_timeout => 500) {|http| http.request(req) }
 
