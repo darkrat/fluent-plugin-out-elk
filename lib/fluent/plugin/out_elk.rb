@@ -6,22 +6,8 @@ module Fluent
   class ELKOutput < Fluent::Plugin::Output
 
     Fluent::Plugin.register_output('elk', self)
-    
-    def configure(conf)
-      super
-    end
 
-    def initialize
-      super
-    end
-
-    def start
-      super
-    end
-
-    def shutdown
-      super
-    end
+    DEFAULT_BUFFER_TYPE = "memory"
 
     config_param :host, :string
 
@@ -40,8 +26,33 @@ module Fluent
     config_param :raise_on_error, :bool, :default => true
 
     config_param :token, :string, :default => ''
+    
     # Switch non-buffered/buffered plugin
     config_param :buffered, :bool, :default => false
+
+    config_section :buffer do
+      config_set_default :@type, DEFAULT_BUFFER_TYPE
+      config_set_default :chunk_keys, ['tag']
+      config_set_default :timekey_use_utc, true
+    end
+    
+    def initialize
+      super
+    end
+
+    def configure(conf)
+      compat_parameters_convert(conf, :buffer)
+      super
+    end
+
+    def start
+      super
+    end
+
+    def shutdown
+      super
+    end
+
 
     def set_body(req, tag, time, record)
       req.body = Yajl.dump(data)
@@ -108,10 +119,6 @@ module Fluent
       true
     end
 
-    def multi_workers_ready?
-      true
-    end
-
     def process(tag, es)
       es.each do |time, record|
         handle_record(tag, time, record)
@@ -122,7 +129,12 @@ module Fluent
       tag = chunk.metadata.tag
       chunk.msgpack_each do |time, record|
         handle_record(tag, time, record)
+      end
     end
+
+    def multi_workers_ready?
+      true
+    end
+
   end
-end
 
