@@ -6,8 +6,6 @@ require 'fluent/plugin/output'
 class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
   Fluent::Plugin.register_output('elk', self)
 
-  helpers :compat_parameters
-
   DEFAULT_BUFFER_TYPE = "memory"
 
   def initialize
@@ -16,9 +14,6 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
 
   def configure(conf)
     super
-    compat_parameters_convert(conf, :buffer)
-    @last_request_time = nil
-    raise Fluent::ConfigError, "'tag' in chunk_keys is required." if !@chunk_key_tag && @buffered
   end
 
   def start
@@ -48,11 +43,6 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
   config_param :token, :string, :default => ''
   # Switch non-buffered/buffered plugin
   config_param :buffered, :bool, :default => false
-
-  config_section :buffer do
-    config_set_default :@type, DEFAULT_BUFFER_TYPE
-    config_set_default :chunk_keys, ['tag']
-  end
 
   def set_body(req, tag, time, record)
     req.body = Yajl.dump(data)
