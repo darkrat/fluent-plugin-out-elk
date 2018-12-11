@@ -1,18 +1,16 @@
 require 'net/http'
 require 'uri'
 require 'yajl'
-require 'fluent/plugin/output'
+require 'fluent/output'
 
-class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
+class ELKOutput < Fluent::Plugin::Output
   Fluent::Plugin.register_output('elk', self)
-
-  DEFAULT_BUFFER_TYPE = "memory"
-
-  def initialize
+  
+  def configure(conf)
     super
   end
 
-  def configure(conf)
+  def initialize
     super
   end
 
