@@ -146,6 +146,6 @@ class Fluent::Plugin::HTTPOutput < Fluent::Plugin::Output
     tag = chunk.metadata.tag
     chunk.msgpack_each do |time, record|
       handle_record(tag, time, record)
-    end
   end
 end
+
