@@ -57,7 +57,7 @@ module Fluent::Plugin
 
 
     def set_body(req, tag, time, record)
-      req.body = Yajl.dump(data)
+      req.body = Yajl.dump(record)
       req['Content-Type'] = 'application/json'
       req
     end
