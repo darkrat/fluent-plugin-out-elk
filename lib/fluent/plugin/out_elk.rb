@@ -82,7 +82,7 @@ module Fluent::Plugin
       begin
         req['authorization'] = "ELK #{@token}"
         @last_request_time = Time.now.to_f
-        res = Net::HTTP.start(uri.host, uri.port) {|http| http.request(req) }
+        res = Net::HTTP.start(uri.host, uri.port, :read_timeout => 500) {|http| http.request(req) }
 
       rescue => e # rescue all StandardErrors
         # server didn't respond
