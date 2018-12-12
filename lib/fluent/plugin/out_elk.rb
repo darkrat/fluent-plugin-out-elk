@@ -67,7 +67,6 @@ module Fluent::Plugin
       index_fullname = DateTime.strptime(time.to_s,'%s').strftime(@index_name+'-%Y.%m.%d')
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
-      log.info('uri '+ uri.to_s)
       set_body(req, tag, time, record)
       return req, uri
     end
@@ -75,12 +74,10 @@ module Fluent::Plugin
     def send_request(req, uri)
       is_rate_limited = (@rate_limit_msec != 0 and not @last_request_time.nil?)
       if is_rate_limited and ((Time.now.to_f - @last_request_time) * 1000.0 < @rate_limit_msec)
-        log.info('Dropped request due to rate limiting')
         return
       end
 
       res = nil
-      log.info('body: '+ req.body)
       begin
         req['authorization'] = "ELK #{@token}"
         req['Content-Type'] = 'application/json'
