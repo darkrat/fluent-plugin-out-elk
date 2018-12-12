@@ -74,6 +74,7 @@ module Fluent::Plugin
     def send_request(req, uri)
       is_rate_limited = (@rate_limit_msec != 0 and not @last_request_time.nil?)
       if is_rate_limited and ((Time.now.to_f - @last_request_time) * 1000.0 < @rate_limit_msec)
+        log.info('Dropped request due to rate limiting')
         return
       end
 
