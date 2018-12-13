@@ -81,7 +81,7 @@ module Fluent::Plugin
       index_fullname = @index_pattern + Time.now.strftime('-%Y.%m.%d')
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
-      #log.info('uri '+ uri.to_s)
+      log.info('uri '+ uri.to_s)
       return req, uri
     end
 
@@ -93,7 +93,7 @@ module Fluent::Plugin
       end
 
       res = nil
-      #log.info('body: '+ req.body)
+      log.info('body: '+ req.body)
       begin
         req['authorization'] = "ELK #{@token}"
         req['Content-Type'] = 'application/json'
