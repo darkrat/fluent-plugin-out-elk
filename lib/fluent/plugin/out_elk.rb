@@ -22,7 +22,7 @@ module Fluent::Plugin
 
     config_param :port, :string
     
-    config_param :index_name, :string
+    config_param :index_pattern, :string
 
     # Set Net::HTTP.verify_mode to `OpenSSL::SSL::VERIFY_NONE`
     config_param :ssl_no_verify, :bool, :default => false
@@ -78,7 +78,7 @@ module Fluent::Plugin
     end
 
     def create_request()
-      index_fullname = Time.now.strftime('-%Y.%m.%d')
+      index_fullname = @index_pattern + Time.now.strftime('-%Y.%m.%d')
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
       #log.info('uri '+ uri.to_s)
