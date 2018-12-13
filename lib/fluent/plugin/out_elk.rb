@@ -95,7 +95,7 @@ module Fluent::Plugin
       end
 
       res = nil
-      # log.info('body: '+ req.body)
+      log.info('body: '+ req.body)
       begin
         req['authorization'] = "ELK #{@token}"
         req['Content-Type'] = 'application/json'
