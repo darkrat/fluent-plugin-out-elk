@@ -15,7 +15,7 @@ module Fluent::Plugin
 
     DEFAULT_BUFFER_TYPE = "memory"
     BODY_DELIMITER = "\n".freeze
-    
+
     helpers :compat_parameters, :record_accessor
 
     config_param :host, :string
@@ -74,8 +74,7 @@ module Fluent::Plugin
       dt = Time.at(time).to_datetime
       record['@timestamp'] = dt.iso8601(9)
       record['tag'] = tag
-      req.body = @dump_proc.call(meta) << BODY_DELIMITER
-      req.body << @dump_proc.call(record) << BODY_DELIMITER
+      req.body = @dump_proc.call(meta)
       req
     end
 
