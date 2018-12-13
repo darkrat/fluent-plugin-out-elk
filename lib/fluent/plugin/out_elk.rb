@@ -3,6 +3,11 @@ require 'uri'
 require 'yajl'
 require 'date'
 require 'fluent/plugin/output'
+begin
+  require_relative 'oj_serializer'
+rescue LoadError
+end
+
 module Fluent::Plugin
  class ELKOutput < Output
 
@@ -10,7 +15,7 @@ module Fluent::Plugin
 
     DEFAULT_BUFFER_TYPE = "memory"
     
-    helpers :compat_parameters
+    helpers :compat_parameters, :record_accessor
 
     config_param :host, :string
 
@@ -46,6 +51,14 @@ module Fluent::Plugin
     def configure(conf)
       compat_parameters_convert(conf, :buffer)
       super
+
+      begin
+        require 'oj'
+        @dump_proc = Oj.method(:dump)
+      rescue LoadError
+        @dump_proc = Yajl.method(:dump)
+      end
+      
     end
 
     def start
@@ -55,20 +68,22 @@ module Fluent::Plugin
     def shutdown
       super
     end
-
-    def set_body(req, tag, time, record)
-      record['@timestamp'] = DateTime.strptime(time.to_s,'%s').to_s
+    
+    def set_body(req, tag, time, record, meta)
+      dt = Time.at(time).to_datetime
+      record['@timestamp'] = dt.iso8601(9)
       record['tag'] = tag
-      req.body = Yajl.dump(record)
+      body = meta.merdge(record) 
+      req.body = @dump_proc.call(body)
       req
     end
 
-    def create_request(tag, time, record)
+    def create_request(tag, time, record, meta)
       index_fullname = DateTime.strptime(time.to_s,'%s').strftime(@index_name+'-%Y.%m.%d')
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
       # log.info('uri '+ uri.to_s)
-      set_body(req, tag, time, record)
+      set_body(req, tag, time, record, meta)
       return req, uri
     end
 
@@ -103,8 +118,8 @@ module Fluent::Plugin
       end
     end 
 
-    def handle_record(tag, time, record)
-      req, uri = create_request(tag, time, record)
+    def handle_record(tag, time, record, meta)
+      req, uri = create_request(tag, time, record, meta)
       send_request(req, uri)
     end
 
@@ -119,12 +134,18 @@ module Fluent::Plugin
     def formatted_to_msgpack_binary?
       true
     end
+    
+    def multi_workers_ready?
+      true
+    end
 
     def write(chunk)
+      meta = chunk.metadata
       tag = chunk.metadata.tag
       chunk.msgpack_each {|time, record|
-        handle_record(tag, time, record)}
+        handle_record(tag, time, record, meta)}
     end
+    
   end
 end
 
