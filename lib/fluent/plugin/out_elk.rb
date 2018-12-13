@@ -70,15 +70,18 @@ module Fluent::Plugin
       super
     end
 
-    def update_record(tag, time, record)
+    def record_to_json(tag, time, record)
       dt = Time.at(time).to_datetime
       record['@timestamp'] = dt.iso8601(9)
       record['tag'] = tag
-      record
+      data = @dump_proc.call(record)
+      data
     end
-
+    def get_index_name
+      return @index_pattern + Time.now.strftime('-%Y.%m.%d')
+    end
     def create_request()
-      index_fullname = @index_pattern + Time.now.strftime('-%Y.%m.%d')
+      index_fullname = get_index_name
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
       log.info('uri '+ uri.to_s)
@@ -134,13 +137,14 @@ module Fluent::Plugin
 
     def write(chunk)
       tag = chunk.metadata.tag
+      index_name = get_index_name()
       req, uri = create_request()
-      data = Array.new
+      data = '{"index": {"_index": "' + get_index_name + '", "_type": "_doc"}}' + BODY_DELIMITER
 
       chunk.msgpack_each {|time, record|
-        data << update_record(tag, time, record)}
+        data << record_to_json(tag, time, record) << BODY_DELIMITER}
 
-      req.body = @dump_proc.call(data)
+      req.body = '' @dump_proc.call(data)
       send_request(req, uri)
     end
     
