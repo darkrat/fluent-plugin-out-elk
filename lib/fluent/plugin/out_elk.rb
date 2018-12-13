@@ -69,21 +69,19 @@ module Fluent::Plugin
     def shutdown
       super
     end
-    
-    def set_body(req, tag, time, record)
+
+    def update_record(tag, time, record)
       dt = Time.at(time).to_datetime
       record['@timestamp'] = dt.iso8601(9)
       record['tag'] = tag
-      req.body = @dump_proc.call(record)
-      req
+      record
     end
 
-    def create_request(tag, time, record)
-      index_fullname = Time.at(time).to_datetime.strftime(@index_name+'-%Y.%m.%d')
+    def create_request()
+      index_fullname = Time.now.strftime('-%Y.%m.%d')
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
-      log.info('uri '+ uri.to_s)
-      set_body(req, tag, time, record)
+      #log.info('uri '+ uri.to_s)
       return req, uri
     end
 
@@ -95,7 +93,7 @@ module Fluent::Plugin
       end
 
       res = nil
-      log.info('body: '+ req.body)
+      #log.info('body: '+ req.body)
       begin
         req['authorization'] = "ELK #{@token}"
         req['Content-Type'] = 'application/json'
@@ -118,11 +116,6 @@ module Fluent::Plugin
       end
     end 
 
-    def handle_record(tag, time, record)
-      req, uri = create_request(tag, time, record)
-      send_request(req, uri)
-    end
-
     def prefer_buffered_processing
       @buffered
     end
@@ -141,8 +134,14 @@ module Fluent::Plugin
 
     def write(chunk)
       tag = chunk.metadata.tag
+      req, uri = create_request()
+      data = Array.new
+
       chunk.msgpack_each {|time, record|
-        handle_record(tag, time, record)}
+        data << update_record(tag, time, record)}
+
+      req.body = @dump_proc.call(data)
+      send_request(req, uri)
     end
     
   end
