@@ -14,6 +14,7 @@ module Fluent::Plugin
     Fluent::Plugin.register_output('elk', self)
 
     DEFAULT_BUFFER_TYPE = "memory"
+    BODY_DELIMITER = "\n".freeze
     
     helpers :compat_parameters, :record_accessor
 
