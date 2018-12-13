@@ -79,10 +79,10 @@ module Fluent::Plugin
     end
 
     def create_request(tag, time, record)
-      index_fullname = DateTime.strptime(time.to_s,'%s').strftime(@index_name+'-%Y.%m.%d')
+      index_fullname = Time.at(time).to_datetime.strftime(@index_name+'-%Y.%m.%d')
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname})
       req = Net::HTTP::Post.new(uri.to_s)
-      # log.info('uri '+ uri.to_s)
+      log.info('uri '+ uri.to_s)
       set_body(req, tag, time, record)
       return req, uri
     end
@@ -140,7 +140,6 @@ module Fluent::Plugin
     end
 
     def write(chunk)
-      meta = chunk.metadata
       tag = chunk.metadata.tag
       chunk.msgpack_each {|time, record|
         handle_record(tag, time, record)}
