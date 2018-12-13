@@ -144,7 +144,7 @@ module Fluent::Plugin
       chunk.msgpack_each {|time, record|
         data << record_to_json(tag, time, record) << BODY_DELIMITER}
 
-      req.body = '' @dump_proc.call(data)
+      req.body = data
       send_request(req, uri)
     end
     
