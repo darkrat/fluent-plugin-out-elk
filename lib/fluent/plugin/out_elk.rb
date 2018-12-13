@@ -73,8 +73,8 @@ module Fluent::Plugin
       dt = Time.at(time).to_datetime
       record['@timestamp'] = dt.iso8601(9)
       record['tag'] = tag
-      body = meta.merdge(record) 
-      req.body = @dump_proc.call(body)
+      req.body = @dump_proc.call(meta) << BODY_DELIMITER
+      req.body << @dump_proc.call(record) << BODY_DELIMITER
       req
     end
 
