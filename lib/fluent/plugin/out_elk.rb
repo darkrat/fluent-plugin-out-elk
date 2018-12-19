@@ -21,7 +21,7 @@ module Fluent::Plugin
     config_param :host, :string
 
     config_param :port, :string
-    config_param :use_ssl, :bool, :default => false
+    config_param :use_ssl, :bool, :default => true
     config_param :index_pattern, :string
 
     # Set Net::HTTP.verify_mode to `OpenSSL::SSL::VERIFY_NONE`
@@ -101,7 +101,7 @@ module Fluent::Plugin
         req['authorization'] = "ELK #{@token}"
         req['Content-Type'] = 'application/json'
         @last_request_time = Time.now.to_f
-        res = Net::HTTP.start(uri.host, uri.port, :read_timeout => 500, :use_ssl => uri.scheme == 'https') {|http| http.request(req) }
+        res = Net::HTTP.start(uri.host, uri.port, :read_timeout => 500, :use_ssl => @use_ssl) {|http| http.request(req) }
 
       rescue => e # rescue all StandardErrors
         # server didn't respond
