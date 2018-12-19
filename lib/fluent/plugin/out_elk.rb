@@ -84,7 +84,7 @@ module Fluent::Plugin
       index_fullname = get_index_name
       uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname, :use_ssl => @use_ssl})
       req = Net::HTTP::Post.new(uri.to_s)
-      log.info('uri '+ uri.to_s)
+      #log.info('uri '+ uri.to_s)
       return req, uri
     end
 
