@@ -87,8 +87,10 @@ module Fluent::Plugin
     end
 
     def extract_index_postfix(record)
-      postfix = record['kubernetes.namespace_name']
-      return postfix
+      if record['kubernetes'].has_key?('namespace_name') 
+        return record['kubernetes']['namespace_name']
+       end
+      return 'default'
     end
 
     def record_to_json(tag, time, record)
@@ -98,10 +100,7 @@ module Fluent::Plugin
       data = @dump_proc.call(record)
       data
     end
-    def get_index_name
-      return @index_pattern +'-'+ @index_postfix + Time.now.strftime('-%Y.%m.%d')
-    end
-    def get_full_index_name(index_postfix)
+    def get_index_name(index_postfix)
       return @index_pattern +'-'+ index_postfix + Time.now.strftime('-%Y.%m.%d')
     end
     def create_request(index_name)
@@ -145,7 +144,7 @@ module Fluent::Plugin
       tag = chunk.metadata.tag
       chunk.msgpack_each {|time, record|
         index_postfix = extract_index_postfix(record)
-        index_name = get_full_index_name(index_postfix)
+        index_name = get_index_name(index_postfix)
         msg = record_to_json(tag, time, record)
         data_list << [index_name, msg]
       }
