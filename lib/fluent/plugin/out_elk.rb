@@ -142,6 +142,7 @@ module Fluent::Plugin
 
     def write(chunk)
       tag = chunk.metadata.tag
+      data_list = []
       chunk.msgpack_each {|time, record|
         index_postfix = extract_index_postfix(record)
         index_name = get_index_name(index_postfix)
