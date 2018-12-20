@@ -69,6 +69,27 @@ module Fluent::Plugin
     def shutdown
       super
     end
+    
+    def prefer_buffered_processing
+      @buffered
+    end
+
+    def format(tag, time, record)
+      [time, record].to_msgpack
+    end
+
+    def formatted_to_msgpack_binary?
+      true
+    end
+    
+    def multi_workers_ready?
+      true
+    end
+
+    def extract_index_postfix(record)
+      postfix = record['kubernetes.namespace_name']
+      return postfix
+    end
 
     def record_to_json(tag, time, record)
       dt = Time.at(time).to_datetime
@@ -78,13 +99,14 @@ module Fluent::Plugin
       data
     end
     def get_index_name
-      return @index_pattern + Time.now.strftime('-%Y.%m.%d')
+      return @index_pattern +'-'+ @index_postfix + Time.now.strftime('-%Y.%m.%d')
     end
-    def create_request()
-      index_fullname = get_index_name
-      uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_fullname, :use_ssl => @use_ssl})
+    def get_full_index_name(index_postfix)
+      return @index_pattern +'-'+ index_postfix + Time.now.strftime('-%Y.%m.%d')
+    end
+    def create_request(index_name)
+      uri = URI::HTTP.build({:host => @host, :port => @port, :path => '/logs/' + index_name, :use_ssl => @use_ssl})
       req = Net::HTTP::Post.new(uri.to_s)
-      #log.info('uri '+ uri.to_s)
       return req, uri
     end
 
@@ -119,33 +141,24 @@ module Fluent::Plugin
       end
     end 
 
-    def prefer_buffered_processing
-      @buffered
-    end
-
-    def format(tag, time, record)
-      [time, record].to_msgpack
-    end
-
-    def formatted_to_msgpack_binary?
-      true
-    end
-    
-    def multi_workers_ready?
-      true
-    end
-
     def write(chunk)
       tag = chunk.metadata.tag
-      index_name = get_index_name()
-      req, uri = create_request()
-      data = '{"index": {"_index": "' + get_index_name + '", "_type": "_doc"}}' + BODY_DELIMITER
-
       chunk.msgpack_each {|time, record|
-        data << record_to_json(tag, time, record) << BODY_DELIMITER}
+        index_postfix = extract_index_postfix(record)
+        index_name = get_full_index_name(index_postfix)
+        msg = record_to_json(tag, time, record)
+        data_list << [index_name, msg]
+      }
+      data_list.group_by(&:first)
+      .map { |c, xs| [c, xs.map(&:last)]}
+      .each{|index,messages| 
+        req, uri = create_request(index)
+        data = '{"index": {"_index": "' + index + '", "_type": "_doc"}}' + BODY_DELIMITER
+        messages.each{|message| data << message << BODY_DELIMITER}
+        req.body = data
+        send_request(req, uri)
+      }
 
-      req.body = data
-      send_request(req, uri)
     end
     
   end
